@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="Carburantes España",
     page_icon="⛽",
     layout="wide",
-    initial_sidebar_layout="expanded",
+    initial_sidebar_state="expanded",
 )
 
 # ─────────────────────────────────────────────
