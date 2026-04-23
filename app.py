@@ -11,10 +11,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import numpy as np
+import unicodedata
 from datetime import datetime
 
 # ─────────────────────────────────────────────
-# CONFIGURACIÓN DE PÁGINA
+# CONFIGURACIÓN DE PÁGINA (DEBE SER LO PRIMERO)
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="Carburantes España",
@@ -105,15 +106,15 @@ st.markdown("""
 # FUNCIONES DE DATOS
 # ─────────────────────────────────────────────
 
-API_BASE = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarworlds/PreciosCarworlds"
+API_BASE = "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes"
 
-# Mapeo de endpoints de la API
+# Mapeo de endpoints de la API (ACTUALIZADO 2024)
 ENDPOINTS = {
-    "estaciones": f"{API_BASE}/EstacionesTerrestres/",
-    "productos": f"{API_BASE}/Listados/ProductosPetroliferos/",
-    "ccaa": f"{API_BASE}/Listados/ComunidadesAutonomas/",
-    "provincias": f"{API_BASE}/Listados/Provincias/",
-    "municipios": f"{API_BASE}/Listados/MunicipiosPorProvincia/",
+    "estaciones": f"{API_BASE}/PreciosCarburantes/EstacionesTerrestres/",
+    "productos": f"{API_BASE}/PreciosCarburantes/Listados/ProductosPetroliferos/",
+    "ccaa": f"{API_BASE}/PreciosCarburantes/Listados/ComunidadesAutonomas/",
+    "provincias": f"{API_BASE}/PreciosCarburantes/Listados/Provincias/",
+    "municipios": f"{API_BASE}/PreciosCarburantes/Listados/MunicipiosPorProvincia/",
 }
 
 # Columnas clave de la API y sus renombramientos
@@ -136,6 +137,17 @@ COLUMN_MAP = {
     "Horario": "horario",
     "Tipo Venta": "tipo_venta",
 }
+
+
+def normalize_col_name(name):
+    if not isinstance(name, str):
+        return ""
+    normalized = unicodedata.normalize("NFKD", name)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.lower()
+    for char in " .,-()[]/\'":
+        normalized = normalized.replace(char, "")
+    return normalized
 
 # Nombres de CCAA por ID
 CCAA_NOMBRES = {
@@ -168,9 +180,15 @@ def cargar_datos():
             return pd.DataFrame()
 
         df = pd.DataFrame(estaciones)
+        df.columns = [col.strip() if isinstance(col, str) else col for col in df.columns]
 
-        # Renombrar columnas que existan
-        rename = {k: v for k, v in COLUMN_MAP.items() if k in df.columns}
+        # Renombrar columnas existentes con normalización de nombres
+        normalized_columns = {normalize_col_name(col): col for col in df.columns}
+        rename = {}
+        for raw_name, std_name in COLUMN_MAP.items():
+            normalized_raw = normalize_col_name(raw_name)
+            if normalized_raw in normalized_columns:
+                rename[normalized_columns[normalized_raw]] = std_name
         df = df.rename(columns=rename)
 
         # Convertir precios (usan coma como decimal)
@@ -253,9 +271,17 @@ with st.sidebar:
     st.markdown("---")
 
     # Selector de carburante principal
+    available_carburantes = [
+        c for c in ["gasolina_95", "gasoleo_a", "gasolina_98", "gasoleo_premium"]
+        if c in df.columns
+    ]
+    if not available_carburantes:
+        st.error("No se encontraron columnas de carburante válidas en los datos.")
+        st.stop()
+
     carburante = st.selectbox(
         "Tipo de carburante",
-        options=["gasolina_95", "gasoleo_a", "gasolina_98", "gasoleo_premium"],
+        options=available_carburantes,
         format_func=lambda x: {
             "gasolina_95": "🟢 Gasolina 95 E5",
             "gasoleo_a": "🔵 Gasóleo A",
