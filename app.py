@@ -13,6 +13,10 @@ import requests
 import numpy as np
 import unicodedata
 from datetime import datetime
+import warnings
+
+# Desactivar advertencias SSL para requests
+warnings.filterwarnings('ignore', category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN DE PÁGINA (DEBE SER LO PRIMERO)
@@ -169,6 +173,7 @@ def cargar_datos():
             ENDPOINTS["estaciones"],
             headers={"Accept": "application/json"},
             timeout=30,
+            verify=False,  # Desactivar verificación SSL temporalmente
         )
         response.raise_for_status()
         data = response.json()
