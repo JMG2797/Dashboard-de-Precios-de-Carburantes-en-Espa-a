@@ -1,8 +1,6 @@
 """
 Dashboard de Precios de Carburantes en España
-==============================================
-Fuente: API REST del Ministerio para la Transición Ecológica (MITECO)
-Autor: Proyecto para Economía I
+Fuente: API REST del Ministerio para la Transición Ecológica
 """
 
 import streamlit as st
@@ -18,19 +16,19 @@ import warnings
 # Desactivar advertencias SSL para requests
 warnings.filterwarnings('ignore', category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
-# ─────────────────────────────────────────────
-# CONFIGURACIÓN DE PÁGINA (DEBE SER LO PRIMERO)
-# ─────────────────────────────────────────────
+# 
+# CONFIGURACIÓN DE PÁGINA
+# 
 st.set_page_config(
-    page_title="Carburantes España",
+    page_title="Precios de los Carburantes en España",
     page_icon="⛽",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ─────────────────────────────────────────────
-# ESTILOS CSS PERSONALIZADOS
-# ─────────────────────────────────────────────
+# 
+# ESTILOS CSS
+# 
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
