@@ -168,15 +168,42 @@ CCAA_NOMBRES = {
 @st.cache_data(ttl=1800)  # Cache 30 minutos
 def cargar_datos():
     """Descarga y procesa los datos de la API del Ministerio."""
+    import ssl
+    from urllib3.exceptions import InsecureRequestWarning
+    
+    # Desactivar advertencias de SSL no verificado
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    
+    # Crear una sesión con desactivación de SSL verificado
+    session = requests.Session()
+    session.verify = False
+    
+    # Crear un contexto SSL que no verifique certificados
     try:
-        response = requests.get(
-            ENDPOINTS["estaciones"],
-            headers={"Accept": "application/json"},
-            timeout=30,
-            verify=False,  # Desactivar verificación SSL temporalmente
-        )
-        response.raise_for_status()
-        data = response.json()
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+    except:
+        ssl_context = None
+    
+    try:
+        # Intentar con múltiples configuraciones si es necesario
+        for intento in range(3):
+            try:
+                response = session.get(
+                    ENDPOINTS["estaciones"],
+                    headers={"Accept": "application/json"},
+                    timeout=30,
+                    verify=False,
+                )
+                response.raise_for_status()
+                data = response.json()
+                break  # Éxito, salir del loop
+            except requests.exceptions.SSLError as e:
+                if intento < 2:
+                    continue
+                else:
+                    raise
 
         # La respuesta tiene una clave 'ListaEESSPrecio' con las estaciones
         estaciones = data.get("ListaEESSPrecio", [])
@@ -332,9 +359,17 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
 
-    if st.button("🔄 Actualizar ahora", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button("🔄 Actualizar ahora", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+    
+    with col_btn2:
+        if st.button("🔐 Forzar sin SSL", use_container_width=True):
+            st.cache_data.clear()
+            st.session_state['force_ssl_bypass'] = True
+            st.rerun()
 
     st.markdown("---")
     st.markdown(
